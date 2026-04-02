@@ -1,14 +1,16 @@
 [package]
 name = "taiji-log"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 description = "Taiji 日志过滤与 RAW 分组查看工具"
 license = "MIT"
 documentation = "https://docs.rs/taiji-log"
 repository = "https://github.com/loverara/taiji-log"
 homepage = "https://github.com/loverara/taiji-log"
+readme = "README.md"
 keywords = ["log", "cli", "jsonl", "taiji", "raw"]
 categories = ["command-line-utilities"]
+exclude = ["logs/**", ".trae/**", "target/**", "**/.DS_Store"]
 
 [dependencies]
 clap = { version = "4.5.39", features = ["derive"] }

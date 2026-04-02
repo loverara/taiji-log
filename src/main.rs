@@ -218,15 +218,15 @@ fn matches_filters(entry: &LogEntry, cli: &Cli) -> bool {
             return false;
         }
     }
-    if let Some(request_id_filter) = &cli.request_id
-        && metadata_str(&entry.metadata, "requestId") != Some(request_id_filter.as_str())
-    {
-        return false;
+    if let Some(request_id_filter) = &cli.request_id {
+        if metadata_str(&entry.metadata, "requestId") != Some(request_id_filter.as_str()) {
+            return false;
+        }
     }
-    if let Some(thread_id_filter) = &cli.thread_id
-        && metadata_str(&entry.metadata, "threadId") != Some(thread_id_filter.as_str())
-    {
-        return false;
+    if let Some(thread_id_filter) = &cli.thread_id {
+        if metadata_str(&entry.metadata, "threadId") != Some(thread_id_filter.as_str()) {
+            return false;
+        }
     }
     true
 }
@@ -424,7 +424,8 @@ fn render_request_focus(payload: &Value, lines: &mut Vec<String>, width: usize, 
                                 match result_content {
                                     Value::Array(items) => {
                                         for item in items {
-                                            if let Some(text) = item.get("text").and_then(Value::as_str)
+                                            if let Some(text) =
+                                                item.get("text").and_then(Value::as_str)
                                             {
                                                 push_wrapped(lines, "    ", text, width);
                                             } else {
@@ -476,7 +477,10 @@ fn render_response_focus_with_color(
             .get("completion_tokens")
             .and_then(Value::as_i64)
             .unwrap_or(0);
-        let total = usage.get("total_tokens").and_then(Value::as_i64).unwrap_or(0);
+        let total = usage
+            .get("total_tokens")
+            .and_then(Value::as_i64)
+            .unwrap_or(0);
         lines.push(format!(
             "{} total={} prompt={} completion={}",
             paint(color, "1;36", "tokens:"),
@@ -505,20 +509,23 @@ fn render_response_focus_with_color(
             finish_reason
         ));
         let message = choice.get("message").and_then(Value::as_object);
-        if let Some(content) = message
+        let content = message
             .and_then(|m| m.get("content"))
             .and_then(Value::as_str)
-            && !content.is_empty()
-        {
-            push_wrapped(lines, "  ", content, width);
-        } else {
+            .unwrap_or("");
+        if content.is_empty() {
             lines.push(format!("  {}", paint(color, "2", "[no content]")));
+        } else {
+            push_wrapped(lines, "  ", content, width);
         }
-        if let Some(tool_calls) = message
+
+        let tool_calls = message
             .and_then(|m| m.get("tool_calls"))
-            .and_then(Value::as_array)
-            && !tool_calls.is_empty()
-        {
+            .and_then(Value::as_array);
+        if let Some(tool_calls) = tool_calls {
+            if tool_calls.is_empty() {
+                continue;
+            }
             lines.push(format!("  {}", paint(color, "1;34", "tool_calls:")));
             for call in tool_calls {
                 let id = call.get("id").and_then(Value::as_str).unwrap_or("-");
@@ -743,12 +750,15 @@ fn main() {
         Ok(output) => {
             if !output.is_empty() {
                 let mut stdout = io::stdout().lock();
-                if let Err(err) = writeln!(stdout, "{output}")
-                    && err.kind() != io::ErrorKind::BrokenPipe
-                {
-                    eprintln!("错误: 输出失败: {err}");
-                    std::process::exit(1);
-                }
+                match writeln!(stdout, "{output}") {
+                    Ok(_) => {}
+                    Err(err) => {
+                        if err.kind() != io::ErrorKind::BrokenPipe {
+                            eprintln!("错误: 输出失败: {err}");
+                            std::process::exit(1);
+                        }
+                    }
+                };
             }
         }
         Err(err) => {
